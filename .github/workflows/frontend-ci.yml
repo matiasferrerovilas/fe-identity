@@ -36,6 +36,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # src/routeTree.gen.ts es generado por @tanstack/router-plugin y está gitignored — el
+      # plugin solo lo genera cuando Vite corre (dev/build), pero `tsc -b` (parte de `pnpm run
+      # build`, más abajo) corre ANTES de que Vite tenga la chance de hacerlo, así que en un
+      # checkout fresco de CI el archivo no existe todavía y tsc falla con "Cannot find module
+      # '@/routeTree.gen'". Se genera acá explícitamente con el CLI @tanstack/router-cli (`tsr
+      # generate`, mismo comando que corre como prebuild de `pnpm run build`) para no depender
+      # únicamente del hook de lifecycle de pnpm.
+      - name: Generate routes
+        run: pnpm run routes:generate
+
       - name: Lint
         run: pnpm run lint
 
