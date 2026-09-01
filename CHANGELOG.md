@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-01
+
+### Added
+- New `/workspaces` view, the reverse of `/users` — same Card+Row/Col accordion pattern, one row
+  per workspace, expanding into its member list (name, email, role tag, joined date). Added as
+  the second `NavSlider` tab. Calls the new `GET /v1/admin/workspaces` in api-identity.
+- "Agregar miembro" button on each workspace row opens an invite modal — same form fields and
+  flow as fe-movements' `InviteUserToWorkspace.tsx` (email + role select, `COLLABORATOR`/
+  `READ_ONLY`), calling `POST /v1/invitations/{workspaceId}` directly against api-identity
+  (fe-movements goes through api-movements' gateway instead — fe-identity talks to api-identity
+  directly, that's the point of this app). Required a small api-identity permission fix: the
+  existing invite check assumed the caller was already a member of the workspace, which isn't
+  true for an admin inviting into a workspace they don't belong to — see api-identity's
+  CHANGELOG. Sending an invitation still goes through the existing RabbitMQ
+  `InvitationCreatedEvent` publish, so api-movements/api-keep pick it up the same way they
+  already do for invitations sent from fe-movements/fe-keep — nothing new needed there.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added
