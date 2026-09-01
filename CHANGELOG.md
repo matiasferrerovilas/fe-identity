@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-01
+
+### Added
+- `Dockerfile` + `nginx.conf` + `.github/workflows/frontend-ci.yml`, same shape as fe-movements
+  (nginx:alpine serving a CI-built `dist/`, SPA fallback routing, immutable caching on hashed
+  `assets/`, `no-cache` on `index.html`/`config.js`; CI: lint → build → auto-tag from
+  `package.json` version → build & push a `linux/arm64` image to Docker Hub). Two differences:
+  no `pnpm test` step (no test infra here yet, unlike fe-movements/fe-keep), and the CSP
+  `connect-src` has no `wss:` entry (no WebSocket here) and points at api-identity's LAN
+  IP:port placeholder from `config/config.prod.js` instead of a public `*.eva-core.com` domain —
+  update both together once the real port mapping exists on the Pi. Verified by actually building
+  the image and smoke-testing `/`, `/health`, and SPA-fallback routing locally.
+
+## [0.2.1] - 2026-09-01
+
+### Changed
+- `/users` reworked into the same Card+Row/Col "table" pattern fe-movements' movement list uses
+  (header `Card` with column labels, one `Card` per row) instead of the original layout, which
+  mashed the `userType` tag (PERSONAL/ENTERPRISE) right next to the `userRoles` tags
+  (ROLE_ADMIN/...) with no labels — unclear which was which. Every user also has a `DEFAULT`
+  workspace created automatically at onboarding — pure noise in an admin-wide listing, so it's
+  filtered out (case-insensitive match on `workspaceName`).
+- Each row now shows `createdAt` and is clickable — expands accordion-style into a detail panel
+  with two sections: **Workspaces** (name, role, joined date, per membership) and **Onboarding**
+  (tour-completed status per app — kept as its own section rather than merged into the workspace
+  rows, since onboarding is scoped to (user, api), not to any particular workspace). Backend now
+  returns `AdminUserSummaryDTO.onboarding` alongside `workspaces` for this.
+
 ## [0.2.0] - 2026-09-01
 
 ### Added

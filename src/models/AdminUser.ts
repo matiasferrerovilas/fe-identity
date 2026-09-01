@@ -11,6 +11,14 @@ export interface AdminUserWorkspaceMembership {
   joinedAt: string;
 }
 
+// El onboarding/tour es por (usuario, api) — api-movements y api-keep se onboardean por
+// separado — no está atado a ningún workspace puntual.
+export interface AdminUserOnboarding {
+  api: string;
+  isFirstLogin: boolean;
+  hasSeenTour: boolean;
+}
+
 // Espeja AdminUserSummaryDTO (api-identity, GET /v1/admin/users).
 export interface AdminUserSummary {
   id: number;
@@ -21,4 +29,5 @@ export interface AdminUserSummary {
   userRoles: UserRole[];
   createdAt: string;
   workspaces: AdminUserWorkspaceMembership[];
+  onboarding: AdminUserOnboarding[];
 }
