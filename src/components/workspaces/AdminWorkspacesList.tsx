@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Divider, Empty, Flex, Input, Popconfirm, Row, Select, Skeleton, Tag, Typography, message, theme } from "antd";
+import { Alert, Button, Card, Col, Divider, Empty, Flex, Input, Popconfirm, Row, Select, Skeleton, Tabs, Tag, Typography, message, theme } from "antd";
 import DownOutlined from "@ant-design/icons/DownOutlined";
 import RightOutlined from "@ant-design/icons/RightOutlined";
 import SearchOutlined from "@ant-design/icons/SearchOutlined";
@@ -9,8 +9,10 @@ import UserOutlined from "@ant-design/icons/UserOutlined";
 import { useAdminWorkspaces } from "@/apis/hooks/useAdminWorkspaces";
 import { useChangeMemberRole } from "@/apis/hooks/useChangeMemberRole";
 import { useRemoveMember } from "@/apis/hooks/useRemoveMember";
+import CreateWorkspaceModal from "@/components/workspaces/CreateWorkspaceModal";
 import InviteMemberModal from "@/components/workspaces/InviteMemberModal";
 import TransferOwnershipModal from "@/components/workspaces/TransferOwnershipModal";
+import WorkspaceAuditLog from "@/components/workspaces/WorkspaceAuditLog";
 import { isVisibleWorkspaceName } from "@/utils/workspaceVisibility";
 import type { AdminWorkspaceMember, AdminWorkspaceSummary } from "@/models/AdminWorkspace";
 import type { WorkspaceRole } from "@/models/AdminUser";
@@ -188,6 +190,8 @@ function WorkspaceRow({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<"members" | "activity">("members");
+
   return (
     <Card
       hoverable
@@ -224,7 +228,24 @@ function WorkspaceRow({
         <>
           <Divider style={{ margin: 0 }} />
           <div onClick={(e) => e.stopPropagation()} style={{ cursor: "default" }}>
-            <WorkspaceMembers workspaceId={workspace.id} members={workspace.members} />
+            <Tabs
+              size="small"
+              activeKey={activeTab}
+              onChange={(key) => setActiveTab(key as "members" | "activity")}
+              tabBarStyle={{ margin: "0 16px" }}
+              items={[
+                {
+                  key: "members",
+                  label: "Miembros",
+                  children: <WorkspaceMembers workspaceId={workspace.id} members={workspace.members} />,
+                },
+                {
+                  key: "activity",
+                  label: "Actividad",
+                  children: <WorkspaceAuditLog workspaceId={workspace.id} active={activeTab === "activity"} />,
+                },
+              ]}
+            />
           </div>
         </>
       )}
@@ -257,30 +278,33 @@ export default function AdminWorkspacesList() {
   return (
     <Flex vertical gap={16}>
       <Card>
-        <Flex align="center" gap={10} style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: token.borderRadius,
-              background: token.colorPrimaryBg,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <TeamOutlined style={{ fontSize: 16, color: token.colorPrimary }} />
-          </div>
-          <div>
-            <Text strong style={{ fontSize: 16 }}>
-              Workspaces
-            </Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              Todos los workspaces de la instancia y sus miembros
-            </Text>
-          </div>
+        <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
+          <Flex align="center" gap={10}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: token.borderRadius,
+                background: token.colorPrimaryBg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <TeamOutlined style={{ fontSize: 16, color: token.colorPrimary }} />
+            </div>
+            <div>
+              <Text strong style={{ fontSize: 16 }}>
+                Workspaces
+              </Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                Todos los workspaces de la instancia y sus miembros
+              </Text>
+            </div>
+          </Flex>
+          <CreateWorkspaceModal />
         </Flex>
 
         <Input

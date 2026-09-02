@@ -1,12 +1,17 @@
 import { api } from "@/apis/axios";
+import type { AdminSummary } from "@/models/AdminSummary";
 import type { AdminUserSummary, WorkspaceRole } from "@/models/AdminUser";
 import type { AdminWorkspaceSummary } from "@/models/AdminWorkspace";
+import type { AuditLogEntry } from "@/models/AuditLog";
 
 export const getAdminUsers = () =>
   api.get<AdminUserSummary[]>("/admin/users").then((response) => response.data);
 
 export const getAdminWorkspaces = () =>
   api.get<AdminWorkspaceSummary[]>("/admin/workspaces").then((response) => response.data);
+
+export const getAdminSummary = () =>
+  api.get<AdminSummary>("/admin/summary").then((response) => response.data);
 
 export interface SendInvitationRequest {
   workspaceId: number;
@@ -39,3 +44,13 @@ export const transferOwnership = (workspaceId: number, newOwnerUserId: number) =
   api
     .patch(`/workspaces/${workspaceId}/transfer-ownership`, { newOwnerUserId })
     .then((response) => response.data);
+
+// GET /v1/workspaces/{workspaceId}/audit-log — el chequeo de permiso (OWNER/COLLABORATOR o
+// ROLE_ADMIN) ya vive en WorkspaceMembershipService.verifyCanViewAuditLog.
+export const getWorkspaceAuditLog = (workspaceId: number) =>
+  api.get<AuditLogEntry[]>(`/workspaces/${workspaceId}/audit-log`).then((response) => response.data);
+
+// POST /v1/workspaces — el campo se llama "description" en el backend pero es el nombre del
+// workspace (AddWorkspaceRecord). Quien llama queda como OWNER (WorkspaceAddService.buildWorkspace).
+export const createWorkspace = (name: string) =>
+  api.post("/workspaces", [{ description: name }]).then((response) => response.data);

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-02
+
+### Added
+- Pestaña "Actividad" en la fila expandida de cada workspace (`AdminWorkspacesList.tsx`), al lado
+  de "Miembros" — consume `GET /v1/workspaces/{workspaceId}/audit-log` (ya existía del lado del
+  backend, nada lo consumía todavía) y muestra invitaciones, altas, bajas, transferencias y
+  cambios de rol en orden cronológico. Se pide recién la primera vez que se abre la pestaña, no
+  por cada expansión de fila.
+- Portada del panel (`/`) con números agregados en vez del placeholder "en construcción":
+  usuarios totales, workspaces totales, workspaces creados este mes e invitaciones pendientes —
+  consume el nuevo `GET /v1/admin/summary` de api-identity.
+- Botón "Crear workspace" en `AdminWorkspacesList.tsx` (`CreateWorkspaceModal`), reutilizando
+  `POST /v1/workspaces` — quien crea queda como OWNER; para setear una cuenta a mano se crea acá
+  y después se invita al usuario real con el flujo existente.
+
 ## [0.5.0] - 2026-09-02
 
 ### Added
