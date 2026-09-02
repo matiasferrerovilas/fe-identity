@@ -1,14 +1,26 @@
 import { useMemo, useState } from "react";
-import { Alert, Card, Col, Divider, Empty, Flex, Input, Row, Skeleton, Tag, Typography, theme } from "antd";
+import { Alert, Button, Card, Col, Divider, Empty, Flex, Input, Popconfirm, Row, Select, Skeleton, Tag, Typography, message, theme } from "antd";
 import DownOutlined from "@ant-design/icons/DownOutlined";
 import RightOutlined from "@ant-design/icons/RightOutlined";
 import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import TeamOutlined from "@ant-design/icons/TeamOutlined";
+import UserDeleteOutlined from "@ant-design/icons/UserDeleteOutlined";
 import UserOutlined from "@ant-design/icons/UserOutlined";
 import { useAdminWorkspaces } from "@/apis/hooks/useAdminWorkspaces";
+import { useChangeMemberRole } from "@/apis/hooks/useChangeMemberRole";
+import { useRemoveMember } from "@/apis/hooks/useRemoveMember";
 import InviteMemberModal from "@/components/workspaces/InviteMemberModal";
+import TransferOwnershipModal from "@/components/workspaces/TransferOwnershipModal";
+import { isVisibleWorkspaceName } from "@/utils/workspaceVisibility";
 import type { AdminWorkspaceMember, AdminWorkspaceSummary } from "@/models/AdminWorkspace";
 import type { WorkspaceRole } from "@/models/AdminUser";
+
+// COLLABORATOR/READ_ONLY son los únicos roles asignables por acá — OWNER solo se otorga vía
+// transferir titularidad (ver TransferOwnershipModal), nunca desde este selector.
+const CHANGEABLE_ROLE_OPTIONS: { value: Exclude<WorkspaceRole, "OWNER">; label: string }[] = [
+  { value: "COLLABORATOR", label: "Colaborador" },
+  { value: "READ_ONLY", label: "Solo lectura" },
+];
 
 const { Text } = Typography;
 
@@ -44,8 +56,50 @@ function matchesSearch(workspace: AdminWorkspaceSummary, query: string): boolean
 
 const COL_PADDING = "10px 16px";
 
-function WorkspaceMembers({ members }: { members: AdminWorkspaceMember[] }) {
+function WorkspaceMembers({ workspaceId, members }: { workspaceId: number; members: AdminWorkspaceMember[] }) {
   const { token } = theme.useToken();
+  const removeMemberMutation = useRemoveMember();
+  const changeRoleMutation = useChangeMemberRole();
+
+  const handleRoleChange = (member: AdminWorkspaceMember, newRole: WorkspaceRole) => {
+    changeRoleMutation.mutate(
+      { workspaceId, userId: member.userId, newRole },
+      {
+        onSuccess: () => {
+          message.success(`${memberName(member)} ahora es ${WORKSPACE_ROLE_LABEL[newRole]}`);
+        },
+        onError: (error) => {
+          // @ts-expect-error - response puede estar presente en el error de Axios
+          const status = error?.response?.status;
+          if (status === 403) {
+            message.error("No se puede cambiar el rol: quien invoca no es OWNER/admin, o el miembro es el OWNER");
+          } else {
+            message.error("Error al cambiar el rol");
+          }
+        },
+      },
+    );
+  };
+
+  const handleRemove = (member: AdminWorkspaceMember) => {
+    removeMemberMutation.mutate(
+      { workspaceId, userId: member.userId },
+      {
+        onSuccess: () => {
+          message.success(`${memberName(member)} fue eliminado del workspace`);
+        },
+        onError: (error) => {
+          // @ts-expect-error - response puede estar presente en el error de Axios
+          const status = error?.response?.status;
+          if (status === 403) {
+            message.error("No se puede eliminar: quien invoca no es OWNER/admin, o intenta eliminarse a sí mismo");
+          } else {
+            message.error("Error al eliminar al miembro");
+          }
+        },
+      },
+    );
+  };
 
   if (members.length === 0) {
     return (
@@ -80,10 +134,43 @@ function WorkspaceMembers({ members }: { members: AdminWorkspaceMember[] }) {
               </Flex>
             </Flex>
             <Flex align="center" gap={12}>
-              <Tag color={WORKSPACE_ROLE_COLOR[member.role]}>{WORKSPACE_ROLE_LABEL[member.role] ?? member.role}</Tag>
+              {member.role === "OWNER" ? (
+                <Tag color={WORKSPACE_ROLE_COLOR.OWNER}>{WORKSPACE_ROLE_LABEL.OWNER}</Tag>
+              ) : (
+                <Select
+                  size="small"
+                  value={member.role}
+                  options={CHANGEABLE_ROLE_OPTIONS}
+                  style={{ width: 132 }}
+                  loading={changeRoleMutation.isPending && changeRoleMutation.variables?.userId === member.userId}
+                  onChange={(newRole) => handleRoleChange(member, newRole)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Desde {formatDate(member.joinedAt)}
               </Text>
+              <Popconfirm
+                title={`Sacar a ${memberName(member)} del workspace`}
+                description={
+                  member.role === "OWNER"
+                    ? "Es el OWNER — vos vas a pasar a ser el nuevo dueño del workspace."
+                    : "Pierde acceso inmediatamente."
+                }
+                okText="Sacar"
+                okButtonProps={{ danger: true }}
+                cancelText="Cancelar"
+                onConfirm={() => handleRemove(member)}
+              >
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<UserDeleteOutlined />}
+                  loading={removeMemberMutation.isPending && removeMemberMutation.variables?.userId === member.userId}
+                  aria-label={`Sacar a ${memberName(member)}`}
+                />
+              </Popconfirm>
             </Flex>
           </Flex>
         ))}
@@ -122,7 +209,14 @@ function WorkspaceRow({
           </Text>
         </Col>
         <Col span={6} style={{ textAlign: "right" }}>
-          <InviteMemberModal workspaceId={workspace.id} workspaceName={workspace.name} />
+          <Flex gap={8} justify="flex-end">
+            <TransferOwnershipModal
+              workspaceId={workspace.id}
+              workspaceName={workspace.name}
+              members={workspace.members}
+            />
+            <InviteMemberModal workspaceId={workspace.id} workspaceName={workspace.name} />
+          </Flex>
         </Col>
       </Row>
 
@@ -130,7 +224,7 @@ function WorkspaceRow({
         <>
           <Divider style={{ margin: 0 }} />
           <div onClick={(e) => e.stopPropagation()} style={{ cursor: "default" }}>
-            <WorkspaceMembers members={workspace.members} />
+            <WorkspaceMembers workspaceId={workspace.id} members={workspace.members} />
           </div>
         </>
       )}
@@ -146,8 +240,9 @@ export default function AdminWorkspacesList() {
 
   const filteredWorkspaces = useMemo(() => {
     if (!workspaces) return [];
-    if (!search.trim()) return workspaces;
-    return workspaces.filter((workspace) => matchesSearch(workspace, search));
+    const visible = workspaces.filter((workspace) => isVisibleWorkspaceName(workspace.name));
+    if (!search.trim()) return visible;
+    return visible.filter((workspace) => matchesSearch(workspace, search));
   }, [workspaces, search]);
 
   const toggleExpanded = (id: number) => {

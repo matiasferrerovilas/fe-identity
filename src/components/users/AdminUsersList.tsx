@@ -7,6 +7,7 @@ import RightOutlined from "@ant-design/icons/RightOutlined";
 import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import TeamOutlined from "@ant-design/icons/TeamOutlined";
 import { useAdminUsers } from "@/apis/hooks/useAdminUsers";
+import { isVisibleWorkspaceName } from "@/utils/workspaceVisibility";
 import type {
   AdminUserSummary,
   AdminUserWorkspaceMembership,
@@ -15,10 +16,6 @@ import type {
 } from "@/models/AdminUser";
 
 const { Text } = Typography;
-
-// Todo usuario tiene un workspace "DEFAULT" propio (creado automáticamente en el onboarding) —
-// no aporta nada en un listado admin-wide, así que se filtra antes de mostrar.
-const HIDDEN_WORKSPACE_NAMES = new Set(["default"]);
 
 const USER_TYPE_COLOR: Record<string, string> = {
   PERSONAL: "blue",
@@ -64,7 +61,7 @@ function displayName(user: AdminUserSummary): string {
 }
 
 function visibleWorkspaces(user: AdminUserSummary): AdminUserWorkspaceMembership[] {
-  return user.workspaces.filter((w) => !HIDDEN_WORKSPACE_NAMES.has(w.workspaceName.toLowerCase()));
+  return user.workspaces.filter((w) => isVisibleWorkspaceName(w.workspaceName));
 }
 
 function matchesSearch(user: AdminUserSummary, query: string): boolean {

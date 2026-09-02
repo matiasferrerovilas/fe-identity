@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-02
+
+### Added
+- Panel de Workspaces: sacar un miembro (`DELETE .../members/{userId}`), cambiar el rol de un
+  miembro ya adentro entre Colaborador/Solo lectura (nuevo endpoint del lado de api-identity,
+  `PATCH .../members/{userId}/role`), y transferir la titularidad del workspace a otro miembro
+  (`TransferOwnershipModal`, ya conectado a `PATCH .../transfer-ownership`).
+
+### Fixed
+- Los listados de Usuarios y Workspaces ya no muestran los workspaces "default" que se crean
+  automáticamente por usuario en el onboarding — antes solo se filtraban en Usuarios, ahora
+  también en Workspaces (helper compartido `isVisibleWorkspaceName`).
+
 ## [0.4.1] - 2026-09-01
 
 ### Fixed
