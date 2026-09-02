@@ -6,6 +6,6 @@ window.env = {
     url: "https://auth.eva-core.com",
   },
   backend: {
-    api: "https://identity.home.arpa/v1",
+    api: "http://identity.home.arpa/v1",
   },
 };
